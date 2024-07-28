@@ -1,3 +1,4 @@
 node_modules/
 .env
 logs/
+bfg-1.14.0.jar
