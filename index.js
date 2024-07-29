@@ -253,12 +253,16 @@ app.post("/api/signup", async (req, res) => {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+// Log the directory paths for debugging
+console.log('__dirname:', __dirname);
+console.log('Static path:', path.join(__dirname, 'podcasts/build'));
+
 // Serve static files from the React app
-app.use(express.static(path.join(__dirname, '../podcasts/build')));
+app.use(express.static(path.join(__dirname, 'podcasts/build')));
 
 // Catch-all handler to send back the index.html for any other route
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../podcasts/build/index.html'));
+  res.sendFile(path.join(__dirname, 'podcasts/build/index.html'));
 });
 
 const PORT = process.env.PORT || 5000;
