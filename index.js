@@ -11,7 +11,7 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { refreshToken } from 'firebase-admin/app';
 import { profile } from 'console';
-import session from "cookie-session";
+import session from "express-session";
 import passport from "passport"
 import { Strategy as OAuth2Strategy } from 'passport-google-oauth2';
 // import jwt from 'jsonwebtoken';
@@ -40,7 +40,9 @@ const clientId = process.env.GOOGLE_CLIENT_ID;
 const clientsecret = process.env.GOOGLE_CLIENT_SECRET;
 
 app.use(cors({
-  origin: 'http://localhost:3000', 
+  origin:  process.env.NODE_ENV === 'production'
+  ? 'https://your-frontend-domain.com'
+  : 'http://localhost:3000',
   credentials: true
 }));
 app.use(express.json());
@@ -52,7 +54,10 @@ app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: true,
-  cookie: { secure: false } 
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 24 * 60 * 60 * 1000, // 1 day
+  },
 
 }));
 
@@ -64,7 +69,9 @@ passport.use(
   new OAuth2Strategy({
     clientID: clientId,
     clientSecret: clientsecret,
-    callbackURL: "http://localhost:4000/auth/google/callback",
+    callbackURL:  process.env.NODE_ENV === 'production'
+    ? 'https://your-backend-domain.com/auth/google/callback'
+    : 'http://localhost:4000/auth/google/callback',
     scope: ["profile","email"],
   },
 async(accessToken, refreshToken, profile,done)=>{
@@ -105,7 +112,12 @@ app.get("/auth/google", passport.authenticate("google", { scope: ["profile", "em
 
 
 app.get('/auth/google/callback',
-  passport.authenticate('google', { successRedirect: "http://localhost:3000", failureRedirect: "http://localhost:3000" })
+  passport.authenticate('google', { successRedirect: process.env.NODE_ENV === 'production'
+    ? 'https://your-frontend-domain.com'
+    : 'http://localhost:3000',
+     failureRedirect: process.env.NODE_ENV === 'production'
+     ? 'https://your-frontend-domain.com'
+     : 'http://localhost:3000' })
 );
 
 
@@ -120,7 +132,9 @@ app.get("/sigin/sucess", async(req, res) => {
 app.get("/logout", (req, res) => {
   req.logOut(function(err){
     if(err){return next(err)}
-    res.redirect("http://localhost:3000");
+    res.redirect( process.env.NODE_ENV === 'production'
+      ? 'https://your-frontend-domain.com'
+      : 'http://localhost:3000');
   })
 })
 
@@ -135,8 +149,8 @@ app.use((err, req, res, next) => {
 // Connect to MongoDB
 mongoose
   .connect(uri, {
-    // useNewUrlParser: true,
-    // useUnifiedTopology: true,
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
   })
   .then(() => console.log("Connected to MongoDB"))
   .catch((err) => console.error("Error connecting to MongoDB:", err));
