@@ -41,7 +41,7 @@ const clientsecret = process.env.GOOGLE_CLIENT_SECRET;
 
 app.use(cors({
   origin:  process.env.NODE_ENV === 'production'
-  ? 'https://your-frontend-domain.com'
+  ? 'https://vocal-dragon-c79404.netlify.app'
   : 'http://localhost:3000',
   credentials: true
 }));
@@ -70,8 +70,8 @@ passport.use(
     clientID: clientId,
     clientSecret: clientsecret,
     callbackURL:  process.env.NODE_ENV === 'production'
-    ? 'https://your-backend-domain.com/auth/google/callback'
-    : 'http://localhost:4000/auth/google/callback',
+    ? 'https://vocal-dragon-c79404.netlify.app/auth/google/callback'
+    : 'https://vocal-dragon-c79404.netlify.app/auth/google/callback',
     scope: ["profile","email"],
   },
 async(accessToken, refreshToken, profile,done)=>{
@@ -113,10 +113,10 @@ app.get("/auth/google", passport.authenticate("google", { scope: ["profile", "em
 
 app.get('/auth/google/callback',
   passport.authenticate('google', { successRedirect: process.env.NODE_ENV === 'production'
-    ? 'https://your-frontend-domain.com'
+    ? 'https://vocal-dragon-c79404.netlify.app'
     : 'http://localhost:3000',
      failureRedirect: process.env.NODE_ENV === 'production'
-     ? 'https://your-frontend-domain.com'
+     ? 'https://vocal-dragon-c79404.netlify.app'
      : 'http://localhost:3000' })
 );
 
@@ -133,7 +133,7 @@ app.get("/logout", (req, res) => {
   req.logOut(function(err){
     if(err){return next(err)}
     res.redirect( process.env.NODE_ENV === 'production'
-      ? 'https://your-frontend-domain.com'
+      ? 'https://vocal-dragon-c79404.netlify.app'
       : 'http://localhost:3000');
   })
 })
