@@ -54,10 +54,7 @@ app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: true,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    maxAge: 24 * 60 * 60 * 1000, // 1 day
-  },
+  cookie: { secure: false } 
 
 }));
 
@@ -69,9 +66,9 @@ passport.use(
   new OAuth2Strategy({
     clientID: clientId,
     clientSecret: clientsecret,
-    callbackURL:  process.env.NODE_ENV === 'production'
-    ? 'https://vocal-dragon-c79404.netlify.app/auth/google/callback'
-    : 'https://vocal-dragon-c79404.netlify.app/auth/google/callback',
+    callbackURL: process.env.NODE_ENV === 'production'
+    ? 'https://podvibe-backend-server.onrender.com/auth/google/callback'
+    : 'http://localhost:4000/auth/google/callback',
     scope: ["profile","email"],
   },
 async(accessToken, refreshToken, profile,done)=>{
