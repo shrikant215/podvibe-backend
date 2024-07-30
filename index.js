@@ -62,13 +62,15 @@ app.use(session({
 app.use(passport.initialize())
 app.use(passport.session())
 
+const callbackURL = process.env.NODE_ENV === 'production'
+  ? 'https://podvibe-backend-server.onrender.com/auth/google/callback'
+  : 'http://localhost:4000/auth/google/callback';
+
 passport.use(
   new OAuth2Strategy({
     clientID: clientId,
     clientSecret: clientsecret,
-    callbackURL: process.env.NODE_ENV === 'production'
-    ? 'https://podvibe-backend-server.onrender.com/auth/google/callback'
-    : 'http://localhost:4000/auth/google/callback',
+    callbackURL,
     scope: ["profile","email"],
   },
 async(accessToken, refreshToken, profile,done)=>{
@@ -107,7 +109,6 @@ passport.deserializeUser(function(obj, done) {
 app.get("/auth/google", passport.authenticate("google", { scope: ["profile", "email"] }));
 
 
-
 app.get('/auth/google/callback',
   passport.authenticate('google', { successRedirect: process.env.NODE_ENV === 'production'
     ? 'https://vocal-dragon-c79404.netlify.app'
@@ -129,9 +130,7 @@ app.get("/sigin/sucess", async(req, res) => {
 app.get("/logout", (req, res) => {
   req.logOut(function(err){
     if(err){return next(err)}
-    res.redirect( process.env.NODE_ENV === 'production'
-      ? 'https://vocal-dragon-c79404.netlify.app'
-      : 'http://localhost:3000');
+    res.redirect( process.env.NODE_ENV === 'production'  ? 'https://vocal-dragon-c79404.netlify.app' : 'http://localhost:3000');
   })
 })
 
