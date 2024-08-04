@@ -1,4 +1,3 @@
-// Import necessary modules
 import dotenv from 'dotenv';
 import express from 'express';
 import mongoose from 'mongoose';
@@ -6,18 +5,15 @@ import bodyParser from 'body-parser';
 import cors from 'cors';
 import nodemailer from 'nodemailer';
 import randomstring from 'randomstring';
-import path from 'path';
+import path, { dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-import { refreshToken } from 'firebase-admin/app';
-import { profile } from 'console';
 import session from "express-session";
-import passport from "passport"
+import passport from "passport";
 import { Strategy as OAuth2Strategy } from 'passport-google-oauth2';
-// import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import MongoStore from 'connect-mongo';
 
+dotenv.config();
 
 const userSchema = new mongoose.Schema(
   {
@@ -31,8 +27,6 @@ const userSchema = new mongoose.Schema(
 );
 const User = mongoose.model("User", userSchema);
 
-dotenv.config();
-
 const app = express();
 const uri = process.env.MONGODB_URI;
 
@@ -40,14 +34,14 @@ const clientId = process.env.GOOGLE_CLIENT_ID;
 const clientsecret = process.env.GOOGLE_CLIENT_SECRET;
 
 app.use(cors({
-  origin: 'http://localhost:3000',
+  origin: 'https://vocal-dragon-c79404.netlify.app',
   credentials: true
 }));
 app.use(express.json());
 app.use(bodyParser.json());
 app.use("/uploads", express.static("uploads"));
 
-//setup session
+// Setup session
 app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,
@@ -55,48 +49,48 @@ app.use(session({
   cookie: { secure: false }
 }));
 
-//setup
-app.use(passport.initialize())
-app.use(passport.session())
+// Setup passport
+app.use(passport.initialize());
+app.use(passport.session());
 
-const callbackURL = 'http://localhost:4000/auth/google/callback';
+const callbackURL = 'https://podvibe-backend-server.onrender.com/auth/google/callback';
 
 passport.use(
   new OAuth2Strategy({
     clientID: clientId,
     clientSecret: clientsecret,
     callbackURL,
-    scope: ["profile","email"],
+    scope: ["profile", "email"],
   },
-async(accessToken, refreshToken, profile, done) => {
-  console.log("profile", profile)
-  try {
-    if (!profile) {
-      throw new Error('Profile object is null');
-    }
-    console.log('Profile:', profile);
-    let user = await User.findOne({ googleId: profile.id });
-    if (!user) {
-      user = new User({
-        googleId: profile.id,
-        displayName: profile.displayName,
-        email: profile.emails[0].value,
-        image: profile.photos[0].value
-      });
-      await user.save();
-    }
-    return done(null, user);
-  } catch (error) {
-    return done(error, null)
-  }
-})
+    async (accessToken, refreshToken, profile, done) => {
+      console.log("profile", profile);
+      try {
+        if (!profile) {
+          throw new Error('Profile object is null');
+        }
+        console.log('Profile:', profile);
+        let user = await User.findOne({ googleId: profile.id });
+        if (!user) {
+          user = new User({
+            googleId: profile.id,
+            displayName: profile.displayName,
+            email: profile.emails[0].value,
+            image: profile.photos[0].value
+          });
+          await user.save();
+        }
+        return done(null, user);
+      } catch (error) {
+        return done(error, null);
+      }
+    })
 );
 
-passport.serializeUser(function(user, done) {
+passport.serializeUser(function (user, done) {
   done(null, user);
 });
 
-passport.deserializeUser(function(obj, done) {
+passport.deserializeUser(function (obj, done) {
   done(null, obj);
 });
 
@@ -104,12 +98,14 @@ passport.deserializeUser(function(obj, done) {
 app.get("/auth/google", passport.authenticate("google", { scope: ["profile", "email"] }));
 
 app.get('/auth/google/callback',
-  passport.authenticate('google', { successRedirect: 'http://localhost:3000', failureRedirect: 'http://localhost:3000' })
+  passport.authenticate('google', {
+    successRedirect: 'https://vocal-dragon-c79404.netlify.app',
+    failureRedirect: 'https://vocal-dragon-c79404.netlify.app'
+  })
 );
 
-// Update the path in the backend
-app.get("/signin/success", async (req, res) => {
-  console.log("User:", req.user)
+app.get("/sigin/sucess", async (req, res) => {
+  console.log("User:", req.user);
   if (req.user) {
     res.status(200).json({ message: "Login successful", user: req.user });
   } else {
@@ -117,13 +113,12 @@ app.get("/signin/success", async (req, res) => {
   }
 });
 
-
 app.get("/logout", (req, res) => {
-  req.logOut(function(err){
-    if(err){return next(err)}
-    res.redirect('http://localhost:3000');
-  })
-})
+  req.logout(function (err) {
+    if (err) { return next(err); }
+    res.redirect('https://vocal-dragon-c79404.netlify.app');
+  });
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -139,23 +134,6 @@ mongoose
   })
   .then(() => console.log("Connected to MongoDB"))
   .catch((err) => console.error("Error connecting to MongoDB:", err));
-
-// Login endpoint
-app.post('/api/login', async (req, res) => {
-  const { email, password } = req.body;
-  try {
-    const user = await User.findOne({ email });
-    if (!user) return res.status(401).json({ message: 'Invalid credentials' });
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(401).json({ message: 'Invalid credentials' });
-
-    const token = generateToken(user);
-    res.status(200).json({ message: 'Login Successful', token });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
 
 // Nodemailer transporter configuration
 const transporter = nodemailer.createTransport({
@@ -236,8 +214,7 @@ app.post("/api/signup", async (req, res) => {
       const newUser = new User({ name, email, password });
       await newUser.save();
 
-      const token = generateToken(newUser);
-      res.status(201).json({ message: "Sign-up successful", token });
+      res.status(201).json({ message: "Sign-up successful" });
       console.log("newUser", newUser);
     }
   } catch (err) {
