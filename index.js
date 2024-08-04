@@ -104,7 +104,7 @@ app.get('/auth/google/callback',
   })
 );
 
-app.get("/sigin/sucess", async (req, res) => {
+app.get("/sigin/success", async (req, res) => {
   console.log("User:", req.user);
   if (req.user) {
     res.status(200).json({ message: "Login successful", user: req.user });
@@ -227,15 +227,16 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Serve static files from the React app
-app.use(express.static(path.join(__dirname, '../podcasts/build')));
+const buildPath = path.join(__dirname, '../podcasts/build');
+app.use(express.static(buildPath));
 
 // The "catchall" handler: for any request that doesn't match one above, send back React's index.html file.
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../podcasts/build/index.html'));
+  res.sendFile(path.join(buildPath, 'index.html'));
 });
 
 // Define port
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 4000;
 
 // Start the server
 app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
