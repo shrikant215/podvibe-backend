@@ -40,9 +40,7 @@ const clientId = process.env.GOOGLE_CLIENT_ID;
 const clientsecret = process.env.GOOGLE_CLIENT_SECRET;
 
 app.use(cors({
-  origin:  process.env.NODE_ENV === 'production'
-  ? 'https://vocal-dragon-c79404.netlify.app'
-  : 'http://localhost:3000',
+  origin: 'http://localhost:3000',
   credentials: true
 }));
 app.use(express.json());
@@ -54,17 +52,14 @@ app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: true,
-  cookie: { secure: false } 
-
+  cookie: { secure: false }
 }));
 
 //setup
 app.use(passport.initialize())
 app.use(passport.session())
 
-const callbackURL = process.env.NODE_ENV === 'production'
-  ? 'https://podvibe-backend-server.onrender.com/auth/google/callback'
-  : 'http://localhost:4000/auth/google/callback';
+const callbackURL = 'http://localhost:4000/auth/google/callback';
 
 passport.use(
   new OAuth2Strategy({
@@ -73,15 +68,15 @@ passport.use(
     callbackURL,
     scope: ["profile","email"],
   },
-async(accessToken, refreshToken, profile,done)=>{
+async(accessToken, refreshToken, profile, done) => {
   console.log("profile", profile)
-  try{
+  try {
     if (!profile) {
       throw new Error('Profile object is null');
-  }
-  console.log('Profile:', profile);
-    let user = await User.findOne({googleId: profile.id});
-    if(!user){
+    }
+    console.log('Profile:', profile);
+    let user = await User.findOne({ googleId: profile.id });
+    if (!user) {
       user = new User({
         googleId: profile.id,
         displayName: profile.displayName,
@@ -91,7 +86,7 @@ async(accessToken, refreshToken, profile,done)=>{
       await user.save();
     }
     return done(null, user);
-  }catch (error) {
+  } catch (error) {
     return done(error, null)
   }
 })
@@ -108,33 +103,27 @@ passport.deserializeUser(function(obj, done) {
 // Initial Google OAuth login
 app.get("/auth/google", passport.authenticate("google", { scope: ["profile", "email"] }));
 
-
 app.get('/auth/google/callback',
-  passport.authenticate('google', { successRedirect: process.env.NODE_ENV === 'production'
-    ? 'https://vocal-dragon-c79404.netlify.app'
-    : 'http://localhost:3000',
-     failureRedirect: process.env.NODE_ENV === 'production'
-     ? 'https://vocal-dragon-c79404.netlify.app'
-     : 'http://localhost:3000' })
+  passport.authenticate('google', { successRedirect: 'http://localhost:3000', failureRedirect: 'http://localhost:3000' })
 );
 
-
-app.get("/sigin/sucess", async(req, res) => {
+// Update the path in the backend
+app.get("/signin/success", async (req, res) => {
+  console.log("User:", req.user)
   if (req.user) {
     res.status(200).json({ message: "Login successful", user: req.user });
   } else {
     res.status(400).json({ message: "Not authorized" });
   }
-})
+});
+
 
 app.get("/logout", (req, res) => {
   req.logOut(function(err){
     if(err){return next(err)}
-    res.redirect( process.env.NODE_ENV === 'production'  ? 'https://vocal-dragon-c79404.netlify.app' : 'http://localhost:3000');
+    res.redirect('http://localhost:3000');
   })
 })
-
-
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -255,8 +244,6 @@ app.post("/api/signup", async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 });
-
-
 
 // Resolve __dirname and __filename for ES modules
 const __filename = fileURLToPath(import.meta.url);
