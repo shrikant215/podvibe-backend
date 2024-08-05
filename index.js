@@ -1,3 +1,4 @@
+// Import necessary modules
 import dotenv from 'dotenv';
 import express from 'express';
 import mongoose from 'mongoose';
@@ -5,15 +6,18 @@ import bodyParser from 'body-parser';
 import cors from 'cors';
 import nodemailer from 'nodemailer';
 import randomstring from 'randomstring';
-import path, { dirname } from 'path';
+import path from 'path';
 import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import { refreshToken } from 'firebase-admin/app';
+import { profile } from 'console';
 import session from "express-session";
-import passport from "passport";
+import passport from "passport"
 import { Strategy as OAuth2Strategy } from 'passport-google-oauth2';
+// import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import MongoStore from 'connect-mongo';
 
-dotenv.config();
 
 const userSchema = new mongoose.Schema(
   {
@@ -27,6 +31,8 @@ const userSchema = new mongoose.Schema(
 );
 const User = mongoose.model("User", userSchema);
 
+dotenv.config();
+
 const app = express();
 const uri = process.env.MONGODB_URI;
 
@@ -34,91 +40,102 @@ const clientId = process.env.GOOGLE_CLIENT_ID;
 const clientsecret = process.env.GOOGLE_CLIENT_SECRET;
 
 app.use(cors({
-  origin: 'https://vocal-dragon-c79404.netlify.app',
+  origin:  process.env.NODE_ENV === 'production'
+  ? 'https://vocal-dragon-c79404.netlify.app'
+  : 'http://localhost:3000',
   credentials: true
 }));
 app.use(express.json());
 app.use(bodyParser.json());
 app.use("/uploads", express.static("uploads"));
 
-// Setup session
+//setup session
 app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: true,
-  cookie: { secure: false }
+  cookie: { secure: false } 
+
 }));
 
-// Setup passport
-app.use(passport.initialize());
-app.use(passport.session());
+//setup
+app.use(passport.initialize())
+app.use(passport.session())
 
-const callbackURL = 'https://podvibe-backend-server.onrender.com/auth/google/callback';
+const callbackURL = process.env.NODE_ENV === 'production'
+  ? 'hhttps://podvibe-backend.onrender.com/auth/google/callback'
+  : 'http://localhost:4000/auth/google/callback';
 
 passport.use(
   new OAuth2Strategy({
     clientID: clientId,
     clientSecret: clientsecret,
     callbackURL,
-    scope: ["profile", "email"],
+    scope: ["profile","email"],
   },
-    async (accessToken, refreshToken, profile, done) => {
-      console.log("profile", profile);
-      try {
-        if (!profile) {
-          throw new Error('Profile object is null');
-        }
-        console.log('Profile:', profile);
-        let user = await User.findOne({ googleId: profile.id });
-        if (!user) {
-          user = new User({
-            googleId: profile.id,
-            displayName: profile.displayName,
-            email: profile.emails[0].value,
-            image: profile.photos[0].value
-          });
-          await user.save();
-        }
-        return done(null, user);
-      } catch (error) {
-        return done(error, null);
-      }
-    })
+async(accessToken, refreshToken, profile,done)=>{
+  console.log("profile", profile)
+  try{
+    if (!profile) {
+      throw new Error('Profile object is null');
+  }
+  console.log('Profile:', profile);
+    let user = await User.findOne({googleId: profile.id});
+    if(!user){
+      user = new User({
+        googleId: profile.id,
+        displayName: profile.displayName,
+        email: profile.emails[0].value,
+        image: profile.photos[0].value
+      });
+      await user.save();
+    }
+    return done(null, user);
+  }catch (error) {
+    return done(error, null)
+  }
+})
 );
 
-passport.serializeUser(function (user, done) {
+passport.serializeUser(function(user, done) {
   done(null, user);
 });
 
-passport.deserializeUser(function (obj, done) {
+passport.deserializeUser(function(obj, done) {
   done(null, obj);
 });
 
 // Initial Google OAuth login
 app.get("/auth/google", passport.authenticate("google", { scope: ["profile", "email"] }));
 
+
 app.get('/auth/google/callback',
-  passport.authenticate('google', {
-    successRedirect: 'https://vocal-dragon-c79404.netlify.app',
-    failureRedirect: 'https://vocal-dragon-c79404.netlify.app'
-  })
+  passport.authenticate('google', { successRedirect: process.env.NODE_ENV === 'production'
+    ? 'https://vocal-dragon-c79404.netlify.app'
+    : 'http://localhost:3000',
+     failureRedirect: process.env.NODE_ENV === 'production'
+     ? 'https://vocal-dragon-c79404.netlify.app'
+     : 'http://localhost:3000' })
 );
 
-app.get("/sigin/success", async (req, res) => {
-  console.log("User:", req.user);
+
+app.get("/sigin/sucess", async(req, res) => {
+  console.log("dddddddddddddddd",req.user)
   if (req.user) {
     res.status(200).json({ message: "Login successful", user: req.user });
   } else {
     res.status(400).json({ message: "Not authorized" });
   }
-});
+})
 
 app.get("/logout", (req, res) => {
-  req.logout(function (err) {
-    if (err) { return next(err); }
-    res.redirect('https://vocal-dragon-c79404.netlify.app');
-  });
-});
+  req.logOut(function(err){
+    if(err){return next(err)}
+    res.redirect( process.env.NODE_ENV === 'production'  ? 'https://vocal-dragon-c79404.netlify.app' : 'http://localhost:3000');
+  })
+})
+
+
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -134,6 +151,23 @@ mongoose
   })
   .then(() => console.log("Connected to MongoDB"))
   .catch((err) => console.error("Error connecting to MongoDB:", err));
+
+// Login endpoint
+app.post('/api/login', async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const user = await User.findOne({ email });
+    if (!user) return res.status(401).json({ message: 'Invalid credentials' });
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(401).json({ message: 'Invalid credentials' });
+
+    const token = generateToken(user);
+    res.status(200).json({ message: 'Login Successful', token });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
 
 // Nodemailer transporter configuration
 const transporter = nodemailer.createTransport({
@@ -214,7 +248,8 @@ app.post("/api/signup", async (req, res) => {
       const newUser = new User({ name, email, password });
       await newUser.save();
 
-      res.status(201).json({ message: "Sign-up successful" });
+      const token = generateToken(newUser);
+      res.status(201).json({ message: "Sign-up successful", token });
       console.log("newUser", newUser);
     }
   } catch (err) {
@@ -222,21 +257,22 @@ app.post("/api/signup", async (req, res) => {
   }
 });
 
+
+
 // Resolve __dirname and __filename for ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Serve static files from the React app
-const buildPath = path.join(__dirname, '../podcasts/build');
-app.use(express.static(buildPath));
+app.use(express.static(path.join(__dirname, '../podcasts/build')));
 
 // The "catchall" handler: for any request that doesn't match one above, send back React's index.html file.
 app.get('*', (req, res) => {
-  res.sendFile(path.join(buildPath, 'index.html'));
+  res.sendFile(path.join(__dirname, '../podcasts/build/index.html'));
 });
 
 // Define port
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 5000;
 
 // Start the server
 app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
