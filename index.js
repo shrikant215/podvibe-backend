@@ -14,7 +14,7 @@ import { profile } from 'console';
 import session from "express-session";
 import passport from "passport"
 import { Strategy as OAuth2Strategy } from 'passport-google-oauth2';
-// import jwt from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import MongoStore from 'connect-mongo';
 
@@ -39,15 +39,27 @@ const uri = process.env.MONGODB_URI;
 const clientId = process.env.GOOGLE_CLIENT_ID;
 const clientsecret = process.env.GOOGLE_CLIENT_SECRET;
 
+
+
 app.use(cors({
-  origin:  process.env.NODE_ENV === 'production'
-  ? 'https://vocal-dragon-c79404.netlify.app'
-  : 'http://localhost:3000',
-  credentials: true
+  origin:  'http://localhost:3000',
+  credentials: true,
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 }));
 app.use(express.json());
 app.use(bodyParser.json());
 app.use("/uploads", express.static("uploads"));
+
+// Function to generate a token
+const generateToken = (user) => {
+  return jwt.sign(
+    { id: user._id, email: user.email, name: user.name },
+    process.env.JWT_SECRET,
+    { expiresIn: '1h' }
+  );
+};
 
 //setup session
 app.use(session({
@@ -62,24 +74,25 @@ app.use(session({
 app.use(passport.initialize())
 app.use(passport.session())
 
-const callbackURL = process.env.NODE_ENV === 'production'
-  ? 'hhttps://podvibe-backend.onrender.com/auth/google/callback'
-  : 'http://localhost:4000/auth/google/callback';
+// const callbackURL = "http://localhost:4000/auth/google/callback";
+// process.env.NODE_ENV === 'production'
+//   ? 'https://podvibe-backend-server.onrender.com/auth/google/callback'
+//   : 'http://localhost:4000/auth/google/callback';
 
 passport.use(
   new OAuth2Strategy({
     clientID: clientId,
     clientSecret: clientsecret,
-    callbackURL,
+    callbackURL: "http://localhost:4000/auth/google/callback",
     scope: ["profile","email"],
   },
 async(accessToken, refreshToken, profile,done)=>{
-  console.log("profile", profile)
+  // console.log("profile", profile)
   try{
     if (!profile) {
       throw new Error('Profile object is null');
   }
-  console.log('Profile:', profile);
+  // console.log('Profile:', profile);
     let user = await User.findOne({googleId: profile.id});
     if(!user){
       user = new User({
@@ -110,18 +123,13 @@ app.get("/auth/google", passport.authenticate("google", { scope: ["profile", "em
 
 
 app.get('/auth/google/callback',
-  passport.authenticate('google', { successRedirect: process.env.NODE_ENV === 'production'
-    ? 'https://vocal-dragon-c79404.netlify.app'
-    : 'http://localhost:3000',
-     failureRedirect: process.env.NODE_ENV === 'production'
-     ? 'https://vocal-dragon-c79404.netlify.app'
-     : 'http://localhost:3000' })
+  passport.authenticate('google', { successRedirect:  'http://localhost:3000', failureRedirect: 'http://localhost:3000' })
 );
 
-
 app.get("/sigin/sucess", async(req, res) => {
-  console.log("dddddddddddddddd",req.user)
+  // console.log("dddddddddddddddd",req.user)
   if (req.user) {
+    // console.log(req.user,"req.user")
     res.status(200).json({ message: "Login successful", user: req.user });
   } else {
     res.status(400).json({ message: "Not authorized" });
@@ -131,7 +139,7 @@ app.get("/sigin/sucess", async(req, res) => {
 app.get("/logout", (req, res) => {
   req.logOut(function(err){
     if(err){return next(err)}
-    res.redirect( process.env.NODE_ENV === 'production'  ? 'https://vocal-dragon-c79404.netlify.app' : 'http://localhost:3000');
+    res.redirect( 'http://localhost:3000');
   })
 })
 
@@ -159,11 +167,14 @@ app.post('/api/login', async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(401).json({ message: 'Invalid credentials' });
 
-    const isMatch = await bcrypt.compare(password, user.password);
+    // const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = await (password === user.password);
+
     if (!isMatch) return res.status(401).json({ message: 'Invalid credentials' });
 
     const token = generateToken(user);
-    res.status(200).json({ message: 'Login Successful', token });
+
+    res.status(200).json({ message: 'Login Successful', token, user });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -233,7 +244,7 @@ app.post("/api/verifySignupOTP", async (req, res) => {
 
 // Sign-up endpoint
 app.post("/api/signup", async (req, res) => {
-  const { name, email, password, otp } = req.body;
+  const { displayName, email, password, otp } = req.body;
 
   // Verify OTP
   if (!otpMap[email] || otpMap[email] !== otp) {
@@ -245,11 +256,11 @@ app.post("/api/signup", async (req, res) => {
     if (existingUser) {
       return res.status(400).json({ message: "Username already exists" });
     } else {
-      const newUser = new User({ name, email, password });
+      const newUser = new User({ displayName, email, password });
       await newUser.save();
 
       const token = generateToken(newUser);
-      res.status(201).json({ message: "Sign-up successful", token });
+      res.status(201).json({ message: "Sign-up successful", token, newUser });
       console.log("newUser", newUser);
     }
   } catch (err) {
