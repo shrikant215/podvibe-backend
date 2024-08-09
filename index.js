@@ -11,13 +11,14 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { refreshToken } from 'firebase-admin/app';
 import { profile } from 'console';
-import session from "express-session";
+// import session from "express-session";
 import passport from "passport"
 import { Strategy as OAuth2Strategy } from 'passport-google-oauth2';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import MongoStore from 'connect-mongo';
-
+const session = require('express-session');
+const MongoStore = require('connect-mongo');
 
 const userSchema = new mongoose.Schema(
   {
@@ -66,8 +67,9 @@ app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: true,
-  cookie: { secure: false } 
-
+  store: MongoStore.create({ mongoUrl: uri }),
+  cookie: { secure: false },
+  
 }));
 
 //setup
