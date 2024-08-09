@@ -9,45 +9,48 @@ import randomstring from 'randomstring';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
-import session from 'express-session';
-import passport from 'passport';
+import { refreshToken } from 'firebase-admin/app';
+import { profile } from 'console';
+import session from "express-session";
+import passport from "passport"
 import { Strategy as OAuth2Strategy } from 'passport-google-oauth2';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import MongoStore from 'connect-mongo';
 
-dotenv.config();
 
-// MongoDB User Schema
 const userSchema = new mongoose.Schema(
   {
     googleId: String,
     displayName: String,
     email: String,
     password: String,
-    image: String,
+    image: String
   },
   { timestamps: true }
 );
-const User = mongoose.model('User', userSchema);
+const User = mongoose.model("User", userSchema);
 
-// Initialize Express
+dotenv.config();
+
 const app = express();
 const uri = process.env.MONGODB_URI;
-const clientId = process.env.GOOGLE_CLIENT_ID;
-const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
-// Middleware
+const clientId = process.env.GOOGLE_CLIENT_ID;
+const clientsecret = process.env.GOOGLE_CLIENT_SECRET;
+const frontEnd = process.env.FRONTEND_URL;
+
+
 app.use(cors({
-  origin: 'http://localhost:3000',
+  origin:  frontEnd,
   credentials: true,
-  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   preflightContinue: false,
-  optionsSuccessStatus: 204,
+  optionsSuccessStatus: 204
 }));
 app.use(express.json());
 app.use(bodyParser.json());
-app.use('/uploads', express.static('uploads'));
+app.use("/uploads", express.static("uploads"));
 
 // Function to generate a token
 const generateToken = (user) => {
@@ -58,77 +61,88 @@ const generateToken = (user) => {
   );
 };
 
-// Setup session
+//setup session
 app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: true,
   store: MongoStore.create({ mongoUrl: uri }),
-  cookie: { secure: false }, // Set to true if using HTTPS
+  cookie: { secure: false },
+  
 }));
 
-// Passport configuration
-app.use(passport.initialize());
-app.use(passport.session());
+//setup
+app.use(passport.initialize())
+app.use(passport.session())
 
 passport.use(
   new OAuth2Strategy({
     clientID: clientId,
-    clientSecret: clientSecret,
+    clientSecret: clientsecret,
     callbackURL: "https://podvibe-backend-server.onrender.com/auth/google/callback",
-    scope: ['profile', 'email'],
+    scope: ["profile","email"],
   },
-    async (accessToken, refreshToken, profile, done) => {
-      try {
-        if (!profile) {
-          throw new Error('Profile object is null');
-        }
-        let user = await User.findOne({ googleId: profile.id });
-        if (!user) {
-          user = new User({
-            googleId: profile.id,
-            displayName: profile.displayName,
-            email: profile.emails[0].value,
-            image: profile.photos[0].value,
-          });
-          await user.save();
-        }
-        return done(null, user);
-      } catch (error) {
-        return done(error, null);
-      }
-    })
+async(accessToken, refreshToken, profile,done)=>{
+  console.log("profile", profile)
+  try{
+    if (!profile) {
+      throw new Error('Profile object is null');
+  }
+  // console.log('Profile:', profile);
+    let user = await User.findOne({googleId: profile.id});
+    if(!user){
+      user = new User({
+        googleId: profile.id,
+        displayName: profile.displayName,
+        email: profile.emails[0].value,
+        image: profile.photos[0].value
+      });
+      await user.save();
+    }
+    return done(null, user);
+  }catch (error) {
+    return done(error, null)
+  }
+})
 );
 
-passport.serializeUser((user, done) => {
+passport.serializeUser(function(user, done) {
+  console.log("111111",null, user);
   done(null, user);
 });
 
-passport.deserializeUser((obj, done) => {
+passport.deserializeUser(function(obj, done) {
+  console.log("222222",null, obj);
   done(null, obj);
 });
 
-// Google OAuth routes
-app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+// Initial Google OAuth login
+app.get("/auth/google", passport.authenticate("google", { scope: ["profile", "email"] }));
+
 
 app.get('/auth/google/callback',
-  passport.authenticate('google', { successRedirect: 'http://localhost:3000', failureRedirect: 'http://localhost:3000' })
+  passport.authenticate('google', { successRedirect:  frontEnd, failureRedirect: frontEnd })
 );
 
-app.get('/signin/success', async (req, res) => {
+app.get("/sigin/sucess", async(req, res) => {
+  console.log("dddddddddddddddd",req.user)
   if (req.user) {
-    res.status(200).json({ message: 'Login successful', user: req.user });
+    console.log(req.user,"req.user")
+    res.status(200).json({ message: "Login successful", user: req.user });
   } else {
-    res.status(400).json({ message: 'Not authorized' });
+    console.log("Not authorized")
+    res.status(400).json({ message: "Not authorized" });
   }
-});
+})
 
-app.get('/logout', (req, res, next) => {
-  req.logout((err) => {
-    if (err) { return next(err); }
-    res.redirect('http://localhost:3000');
-  });
-});
+app.get("/logout", (req, res) => {
+  req.logOut(function(err){
+    if(err){return next(err)}
+    res.redirect(frontEnd);
+  })
+})
+
+
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -139,11 +153,11 @@ app.use((err, req, res, next) => {
 // Connect to MongoDB
 mongoose
   .connect(uri, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
+    // useNewUrlParser: true,
+    // useUnifiedTopology: true,
   })
-  .then(() => console.log('Connected to MongoDB'))
-  .catch((err) => console.error('Error connecting to MongoDB:', err));
+  .then(() => console.log("Connected to MongoDB"))
+  .catch((err) => console.error("Error connecting to MongoDB:", err));
 
 // Login endpoint
 app.post('/api/login', async (req, res) => {
@@ -152,7 +166,8 @@ app.post('/api/login', async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(401).json({ message: 'Invalid credentials' });
 
-    const isMatch = await bcrypt.compare(password, user.password);
+    // const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = await (password === user.password);
 
     if (!isMatch) return res.status(401).json({ message: 'Invalid credentials' });
 
@@ -166,7 +181,7 @@ app.post('/api/login', async (req, res) => {
 
 // Nodemailer transporter configuration
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  service: "gmail",
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
@@ -177,18 +192,18 @@ const transporter = nodemailer.createTransport({
 const otpMap = {};
 
 // Route to send OTP for signup
-app.post('/api/sendSignupOTP', async (req, res) => {
+app.post("/api/sendSignupOTP", async (req, res) => {
   const { email } = req.body;
 
   const existingUser = await User.findOne({ email });
   if (existingUser) {
-    return res.status(400).json({ message: 'Email already registered.' });
+    return res.status(400).json({ message: "Email already registered." });
   }
 
   // Generate OTP
   const otp = randomstring.generate({
     length: 6,
-    charset: 'numeric',
+    charset: "numeric",
   });
 
   // Save OTP to the in-memory database
@@ -196,9 +211,9 @@ app.post('/api/sendSignupOTP', async (req, res) => {
 
   // Email message configuration
   const mailOptions = {
-    from: process.env.EMAIL_USER,
+    from: "shrikantjk3@gmail.com",
     to: email,
-    subject: 'OTP for Signup',
+    subject: "OTP for Signup",
     text: `Your OTP for signup is: ${otp}`,
   };
 
@@ -206,52 +221,52 @@ app.post('/api/sendSignupOTP', async (req, res) => {
   transporter.sendMail(mailOptions, (error, info) => {
     if (error) {
       console.log(error);
-      res.status(500).json({ message: 'Failed to send OTP.', error });
+      res.status(500).json({ message: "Failed to send OTP.", error });
     } else {
-      console.log('Email sent: ' + info.response);
-      res.status(200).json({ message: 'OTP sent successfully.' });
+      console.log("Email sent: " + info.response);
+      res.status(200).json({ message: "OTP sent successfully." });
     }
   });
 });
 
 // Route to verify OTP for signup
-app.post('/api/verifySignupOTP', async (req, res) => {
+app.post("/api/verifySignupOTP", async (req, res) => {
   const { email, otp } = req.body;
 
   // Verify OTP
   if (!otpMap[email] || otpMap[email] !== otp) {
-    return res.status(400).json({ message: 'Invalid OTP.' });
+    return res.status(400).json({ message: "Invalid OTP." });
   }
 
-  res.status(200).json({ message: 'OTP verification successful.' });
+  res.status(200).json({ message: "OTP verification successful." });
 });
 
 // Sign-up endpoint
-app.post('/api/signup', async (req, res) => {
+app.post("/api/signup", async (req, res) => {
   const { displayName, email, password, otp } = req.body;
 
   // Verify OTP
   if (!otpMap[email] || otpMap[email] !== otp) {
-    return res.status(400).json({ message: 'Invalid OTP.' });
+    return res.status(400).json({ message: "Invalid OTP." });
   }
 
   try {
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(400).json({ message: 'Username already exists' });
+      return res.status(400).json({ message: "Username already exists" });
     } else {
-      const hashedPassword = await bcrypt.hash(password, 10);
-      const newUser = new User({ displayName, email, password: hashedPassword });
+      const newUser = new User({ displayName, email, password });
       await newUser.save();
 
       const token = generateToken(newUser);
-      res.status(201).json({ message: 'Sign-up successful', token, newUser });
-      console.log('newUser', newUser);
+      res.status(201).json({ message: "Sign-up successful", token, newUser });
+      console.log("newUser", newUser);
     }
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
+
 
 // Define port
 const PORT = process.env.PORT || 5000;
