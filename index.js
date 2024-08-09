@@ -106,10 +106,12 @@ async(accessToken, refreshToken, profile,done)=>{
 );
 
 passport.serializeUser(function(user, done) {
+  console.log("111111",null, user);
   done(null, user);
 });
 
 passport.deserializeUser(function(obj, done) {
+  console.log("222222",null, obj);
   done(null, obj);
 });
 
@@ -121,25 +123,16 @@ app.get('/auth/google/callback',
   passport.authenticate('google', { successRedirect:  'http://localhost:3000', failureRedirect: 'http://localhost:3000' })
 );
 
-// app.get("/sigin/sucess", async(req, res) => {
-//   console.log("dddddddddddddddd",req.user)
-//   if (req.user) {
-//     console.log(req.user,"req.user")
-//     res.status(200).json({ message: "Login successful", user: req.user });
-//   } else {
-//     res.status(400).json({ message: "Not authorized" });
-//   }
-// })
-app.get("/signin/success", async (req, res) => {
-  console.log("Request received on /signin/success");
+app.get("/sigin/sucess", async(req, res) => {
+  console.log("dddddddddddddddd",req.user)
   if (req.user) {
-    console.log("User found:", req.user);
+    console.log(req.user,"req.user")
     res.status(200).json({ message: "Login successful", user: req.user });
   } else {
-    console.log("No user found, unauthorized");
+    console.log("Not authorized")
     res.status(400).json({ message: "Not authorized" });
   }
-});
+})
 
 app.get("/logout", (req, res) => {
   req.logOut(function(err){
