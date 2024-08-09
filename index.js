@@ -270,17 +270,17 @@ app.post("/api/signup", async (req, res) => {
 
 
 
-// Resolve __dirname and __filename for ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+// // Resolve __dirname and __filename for ES modules
+// const __filename = fileURLToPath(import.meta.url);
+// const __dirname = dirname(__filename);
 
-// Serve static files from the React app
-app.use(express.static(path.join(__dirname, '../podcasts/build')));
+// // Serve static files from the React app
+// app.use(express.static(path.join(__dirname, '../podcasts/build')));
 
-// The "catchall" handler: for any request that doesn't match one above, send back React's index.html file.
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../podcasts/build/index.html'));
-});
+// // The "catchall" handler: for any request that doesn't match one above, send back React's index.html file.
+// app.get('*', (req, res) => {
+//   res.sendFile(path.join(__dirname, '../podcasts/build/index.html'));
+// });
 
 // Define port
 const PORT = process.env.PORT || 5000;
