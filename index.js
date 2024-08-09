@@ -74,16 +74,11 @@ app.use(session({
 app.use(passport.initialize())
 app.use(passport.session())
 
-// const callbackURL = "http://localhost:4000/auth/google/callback";
-// process.env.NODE_ENV === 'production'
-//   ? 'https://podvibe-backend-server.onrender.com/auth/google/callback'
-//   : 'http://localhost:4000/auth/google/callback';
-
 passport.use(
   new OAuth2Strategy({
     clientID: clientId,
     clientSecret: clientsecret,
-    callbackURL: "http://localhost:4000/auth/google/callback",
+    callbackURL: "https://podvibe-backend-server.onrender.com/auth/google/callback",
     scope: ["profile","email"],
   },
 async(accessToken, refreshToken, profile,done)=>{
@@ -268,19 +263,6 @@ app.post("/api/signup", async (req, res) => {
   }
 });
 
-
-
-// // Resolve __dirname and __filename for ES modules
-// const __filename = fileURLToPath(import.meta.url);
-// const __dirname = dirname(__filename);
-
-// // Serve static files from the React app
-// app.use(express.static(path.join(__dirname, '../podcasts/build')));
-
-// // The "catchall" handler: for any request that doesn't match one above, send back React's index.html file.
-// app.get('*', (req, res) => {
-//   res.sendFile(path.join(__dirname, '../podcasts/build/index.html'));
-// });
 
 // Define port
 const PORT = process.env.PORT || 5000;
