@@ -42,7 +42,7 @@ const clientsecret = process.env.GOOGLE_CLIENT_SECRET;
 
 
 app.use(cors({
-  origin:  'http://localhost:3000',
+  origin:  'https://podvibe-srjk-91bde6.netlify.app',
   credentials: true,
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   preflightContinue: false,
@@ -78,7 +78,7 @@ passport.use(
   new OAuth2Strategy({
     clientID: clientId,
     clientSecret: clientsecret,
-    callbackURL: "http://localhost:4000/auth/google/callback",
+    callbackURL: "https://podvibe-backend-server.onrender.com/auth/google/callback",
     scope: ["profile","email"],
   },
 async(accessToken, refreshToken, profile,done)=>{
@@ -120,7 +120,8 @@ app.get("/auth/google", passport.authenticate("google", { scope: ["profile", "em
 
 
 app.get('/auth/google/callback',
-  passport.authenticate('google', { successRedirect:  'http://localhost:3000', failureRedirect: 'http://localhost:3000' })
+  passport.authenticate('google', { successRedirect:  'https://podvibe-srjk-91bde6.netlify.app', 
+    failureRedirect: 'https://podvibe-srjk-91bde6.netlify.app' })
 );
 
 app.get("/sigin/sucess", async(req, res) => {
@@ -137,7 +138,7 @@ app.get("/sigin/sucess", async(req, res) => {
 app.get("/logout", (req, res) => {
   req.logOut(function(err){
     if(err){return next(err)}
-    res.redirect( 'http://localhost:3000');
+    res.redirect( 'https://podvibe-srjk-91bde6.netlify.app');
   })
 })
 
@@ -168,7 +169,7 @@ app.post('/api/login', async (req, res) => {
     console.log("!user",!user)
 
     // const isMatch = await bcrypt.compare(password, user.password);
-    const isMatch = await (password === user.password);
+    const isMatch = await bcrypt.compare(password, user.password);
     console.log("isMatch",isMatch)
 
     if (!isMatch) return res.status(401).json({ message: 'Invalid credentials' });
@@ -257,7 +258,10 @@ app.post("/api/signup", async (req, res) => {
     if (existingUser) {
       return res.status(400).json({ message: "Username already exists" });
     } else {
-      const newUser = new User({ displayName, email, password });
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(password, salt);
+console.log("hashedPassword",hashedPassword)
+      const newUser = new User({ displayName, email, password: hashedPassword });
       await newUser.save();
 
       const token = generateToken(newUser);
