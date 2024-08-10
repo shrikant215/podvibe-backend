@@ -38,11 +38,11 @@ const uri = process.env.MONGODB_URI;
 
 const clientId = process.env.GOOGLE_CLIENT_ID;
 const clientsecret = process.env.GOOGLE_CLIENT_SECRET;
-const frontEnd = process.env.FRONTEND_URL;
+
 
 
 app.use(cors({
-  origin:  frontEnd,
+  origin:  'http://localhost:3000',
   credentials: true,
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   preflightContinue: false,
@@ -66,9 +66,8 @@ app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: true,
-  store: MongoStore.create({ mongoUrl: uri }),
-  cookie: { secure: false },
-  
+  cookie: { secure: false } 
+
 }));
 
 //setup
@@ -79,7 +78,7 @@ passport.use(
   new OAuth2Strategy({
     clientID: clientId,
     clientSecret: clientsecret,
-    callbackURL: "https://podvibe-backend-server.onrender.com/auth/google/callback",
+    callbackURL: "http://localhost:4000/auth/google/callback",
     scope: ["profile","email"],
   },
 async(accessToken, refreshToken, profile,done)=>{
@@ -121,7 +120,7 @@ app.get("/auth/google", passport.authenticate("google", { scope: ["profile", "em
 
 
 app.get('/auth/google/callback',
-  passport.authenticate('google', { successRedirect:  frontEnd, failureRedirect: frontEnd })
+  passport.authenticate('google', { successRedirect:  'http://localhost:3000', failureRedirect: 'http://localhost:3000' })
 );
 
 app.get("/sigin/sucess", async(req, res) => {
@@ -138,7 +137,7 @@ app.get("/sigin/sucess", async(req, res) => {
 app.get("/logout", (req, res) => {
   req.logOut(function(err){
     if(err){return next(err)}
-    res.redirect(frontEnd);
+    res.redirect( 'http://localhost:3000');
   })
 })
 
@@ -164,10 +163,13 @@ app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
   try {
     const user = await User.findOne({ email });
+    console.log("user",user)
     if (!user) return res.status(401).json({ message: 'Invalid credentials' });
+    console.log("!user",!user)
 
     // const isMatch = await bcrypt.compare(password, user.password);
     const isMatch = await (password === user.password);
+    console.log("isMatch",isMatch)
 
     if (!isMatch) return res.status(401).json({ message: 'Invalid credentials' });
 
