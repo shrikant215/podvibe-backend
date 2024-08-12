@@ -42,12 +42,10 @@ const clientsecret = process.env.GOOGLE_CLIENT_SECRET;
 
 
 app.use(cors({
-  origin:  'https://podvibe-srjk-91bde6.netlify.app',
+  origin: 'https://podvibe-srjk-91bde6.netlify.app',
   credentials: true,
-  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
-  preflightContinue: false,
-  optionsSuccessStatus: 204
 }));
+
 app.use(express.json());
 app.use(bodyParser.json());
 app.use("/uploads", express.static("uploads"));
