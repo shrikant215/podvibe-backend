@@ -106,8 +106,8 @@ async(accessToken, refreshToken, profile,done)=>{
 );
 
 passport.serializeUser(function(user, done) {
-  console.log("111111",null, user);
-  done(null, user);
+  console.log("111111",null, user.id);
+  done(null, user.id);
 });
 
 passport.deserializeUser(function(obj, done) {
@@ -124,18 +124,33 @@ app.get('/auth/google/callback',
     failureRedirect: 'https://podvibe-srjk-91bde6.netlify.app' })
 );
 
-app.get("/sigin/sucess", async(req, res) => {
-  console.log("dddddddddddddddd",req.user)
-  console.log("Session Data:", req.session);
+// app.get("/sigin/sucess", async(req, res) => {
+//   console.log("dddddddddddddddd",req.user)
+//   console.log("Session Data:", req.session);
 
+//   if (req.user) {
+//     console.log(req.user,"req.user")
+//     res.status(200).json({ message: "Login successful", user: req.user });
+//   } else {
+//     console.log("Not authorized")
+//     res.status(400).json({ message: "Not authorized" });
+//   }
+// })
+app.get("/signin/success", (req, res) => {
   if (req.user) {
-    console.log(req.user,"req.user")
-    res.status(200).json({ message: "Login successful", user: req.session });
+    res.redirect("/profile");
   } else {
-    console.log("Not authorized")
     res.status(400).json({ message: "Not authorized" });
   }
-})
+});
+
+app.get("/profile", (req, res) => {
+  if (req.user) {
+    res.status(200).json({ message: "Welcome!", user: req.user });
+  } else {
+    res.status(400).json({ message: "Not authorized" });
+  }
+});
 
 app.get("/logout", (req, res) => {
   req.logOut(function(err){
