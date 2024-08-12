@@ -106,14 +106,26 @@ async(accessToken, refreshToken, profile,done)=>{
 })
 );
 
+// passport.serializeUser(function(user, done) {
+//   console.log("111111",null, user);
+//   done(null, user);
+// });
+
+// passport.deserializeUser(function(obj, done) {
+//   console.log("222222",null, obj);
+//   done(null, obj);
+// });
 passport.serializeUser(function(user, done) {
-  console.log("111111",null, user);
-  done(null, user);
+  done(null, user._id); // Store only the user ID in the session
 });
 
-passport.deserializeUser(function(obj, done) {
-  console.log("222222",null, obj);
-  done(null, obj);
+passport.deserializeUser(async function(id, done) {
+  try {
+    const user = await User.findById(id);
+    done(null, user); // Attach the full user object to req.user
+  } catch (err) {
+    done(err);
+  }
 });
 
 // Initial Google OAuth login
