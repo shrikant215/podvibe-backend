@@ -65,7 +65,7 @@ app.use(session({
   resave: false,
   saveUninitialized: true,
   store: MongoStore.create({ mongoUrl: uri }), 
-  cookie: { secure: true } 
+  cookie: { secure: false } 
 
 }));
 
@@ -104,15 +104,6 @@ async(accessToken, refreshToken, profile,done)=>{
 })
 );
 
-// passport.serializeUser(function(user, done) {
-//   console.log("111111",null, user);
-//   done(null, user);
-// });
-
-// passport.deserializeUser(function(obj, done) {
-//   console.log("222222",null, obj);
-//   done(null, obj);
-// });
 passport.serializeUser(function(user, done) {
   done(null, user._id); // Store only the user ID in the session
 });
@@ -137,7 +128,7 @@ app.get('/auth/google/callback',
 
 app.get("/sigin/sucess", async(req, res) => {
   console.log("dddddddddddddddd",req.user)
-  console.log("Session Data:", req.session);
+  // console.log("Session Data:", req.session);
 
   if (req.user) {
     console.log(req.user,"req.user")
