@@ -73,60 +73,55 @@ import randomstring from 'randomstring';
     };
 
 
-    // Nodemailer transporter configuration
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  });
-
-  // Simulated in-memory database for storing OTPs
+  // Simulated in-memory database for storing OTPs  
   const otpMap = {};
-
-  // Route to send OTP for signup
- export const sendSignupOTP = async (req, res) => {
+  
+  export const sendSignupOTP = async (req, res) => {
     const { email } = req.body;
-
+    console.log('Email:', email);
+  
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required.' });
+    }
+  
     try {
-      // Check if email is already registered
       const existingUser = await User.findOne({ email });
       if (existingUser) {
         return res.status(400).json({ message: 'Email already registered.' });
       }
-
-      // Generate OTP
-      const otp = randomstring.generate({
-        length: 6,
-        charset: 'numeric',
-      });
-
-      // Save OTP to the in-memory database
+  
+      const otp = randomstring.generate({ length: 6, charset: 'numeric' });
       otpMap[email] = otp;
-
-      // Email message configuration
+  
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS,
+        },
+      });
+  
       const mailOptions = {
-        from: process.env.EMAIL_USER, // Use environment variable for sender
+        from: process.env.EMAIL_USER,
         to: email,
         subject: 'OTP for Signup',
         text: `Your OTP for signup is: ${otp}`,
       };
-
-      // Send email
+  
       transporter.sendMail(mailOptions, (error, info) => {
         if (error) {
-          console.error('Email error:', error.message);
+          console.error('Email error:', error);
           return res.status(500).json({ message: 'Failed to send OTP.', error });
         }
-        console.log('Email sent:', info.response);
+        console.log('Email sent successfully:', info.response);
         res.status(200).json({ message: 'OTP sent successfully.' });
       });
     } catch (error) {
-      console.error('Error in sending OTP:', error.message);
-      res.status(500).json({ message: 'Internal server error' });
+      console.error('Error:', error);
+      res.status(500).json({ message: 'Internal server error', error });
     }
   };
+  
 
   // Route to verify OTP for signup
   export const verifySignupOTP = (req, res) => {
