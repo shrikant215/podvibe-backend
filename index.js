@@ -1,12 +1,11 @@
 import express from 'express';
 import dotenv from 'dotenv';
-import connectDB from './config/db.js';
-import configurePassport from './config/passport.js';
 import session from 'express-session';
 import MongoStore from 'connect-mongo';
 import cors from 'cors';
 import authRoutes from './routes/authRoutes.js';
 import passport from 'passport';
+import mongoose from 'mongoose';
 
 dotenv.config();
 
@@ -28,20 +27,38 @@ app.use(
 );
 
 // Passport setup
-configurePassport();
 app.use(passport.initialize());
 app.use(passport.session());
 
 // Routes
 app.use('/auth', authRoutes);
 
+
+
+const connect = () => {
+  mongoose.set('strictQuery', true);
+  mongoose.connect(process.env.MONGODB_URI).then(() => {
+      console.log('MongoDB connected');
+  }).catch((err) => {
+      console.log(err);
+  });
+};
+
+app.use(express.json())
+
 // Error handler middleware
 app.use((err, req, res, next) => {
-  console.error('Unhandled error:', err.message);
-  res.status(500).json({ message: 'Internal server error' });
-});
+  const status = err.status || 500;
+  const message = err.message || "Something went wrong";
+  return res.status(status).json({
+      success: false,
+      status,
+      message
+  })
+})
 
 
-// Start the server
-app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
-connectDB(process.env.MONGODB_URI);
+app.listen(PORT, () => {
+  console.log("Connected")
+  connect();
+})
