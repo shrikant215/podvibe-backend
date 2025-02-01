@@ -7,10 +7,6 @@ import MongoStore from 'connect-mongo';
 import cors from 'cors';
 import authRoutes from './routes/authRoutes.js';
 import passport from 'passport';
-import nodemailer from 'nodemailer';
-import randomstring from 'randomstring';
-import mongoose from 'mongoose';
-// import dotenv from 'dotenv';
 
 dotenv.config();
 
@@ -43,16 +39,6 @@ app.use('/auth', authRoutes);
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err.message);
   res.status(500).json({ message: 'Internal server error' });
-});
-
-process.on('unhandledRejection', (err) => {
-  console.error('Unhandled Rejection:', err);
-  process.exit(1); // Exit to prevent further issues
-});
-
-process.on('uncaughtException', (err) => {
-  console.error('Uncaught Exception:', err);
-  process.exit(1);
 });
 
 
