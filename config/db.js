@@ -5,11 +5,16 @@ dotenv.config();
 
 const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGODB_URI);
-    console.log('MongoDB connected successfully');
+    await mongoose.connect(process.env.MONGODB_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 5000, // Timeout after 5s
+    });
+
+    console.log('✅ MongoDB connected successfully');
   } catch (error) {
-    console.error('Error connecting to MongoDB:', error);
-    process.exit(1);
+    console.error('❌ MongoDB Connection Error:', error.message);
+    process.exit(1); // Exit if connection fails
   }
 };
 

@@ -45,6 +45,17 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: 'Internal server error' });
 });
 
+process.on('unhandledRejection', (err) => {
+  console.error('Unhandled Rejection:', err);
+  process.exit(1); // Exit to prevent further issues
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+  process.exit(1);
+});
+
+
 // Start the server
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
 connectDB(process.env.MONGODB_URI);
