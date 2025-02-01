@@ -46,6 +46,7 @@ import randomstring from 'randomstring';
 
   export const signup = async (req, res) => {
     const { name, email, password, otp } = req.body;
+
     if (!otpMap[email] || otpMap[email] !== otp) {
       return res.status(400).json({ message: 'Invalid OTP.' });
     }
@@ -57,8 +58,13 @@ import randomstring from 'randomstring';
       const hashedPassword = await bcrypt.hash(password, 10);
       const newUser = new User({ name, email, password: hashedPassword });
       await newUser.save().then((user) => {
-        const  token =jwt.sign({id: user._id}, process.env.JWT_SECRET, {expiresIn: '9999 years'});
-        res.status(200).json({ message: 'Signup Successful', token, newUser });
+        const  token = jwt.sign({id: user._id}, process.env.JWT_SECRET, {expiresIn: '9999 years'});
+        res.status(200).json({ message: 'Signup Successful', token,
+           user: {
+               id: newUser._id,
+               email: newUser.email,
+               name: newUser.name,
+        } });
       }).catch((err) => {
         console.log(err);
       })
@@ -126,7 +132,7 @@ import randomstring from 'randomstring';
   // Route to verify OTP for signup
   export const verifySignupOTP = (req, res) => {
     const { email, otp } = req.body;
-
+// console.log(email, otp)
     try {
       // Verify OTP
       if (!otpMap[email] || otpMap[email] !== otp) {
