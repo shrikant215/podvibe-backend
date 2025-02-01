@@ -11,7 +11,7 @@ router.post('/signup', signup);
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 router.get(
   '/google/callback',
-  passport.authenticate('google', { successRedirect: 'http://localhost:3000', failureRedirect: '/' })
+  passport.authenticate('google', { successRedirect: 'https://podvibe-srjk-91bde6.netlify.app', failureRedirect: '/' })
 );
 
 router.post('/sendSignupOTP', sendSignupOTP);
