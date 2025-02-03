@@ -4,7 +4,6 @@ import session from 'express-session';
 import MongoStore from 'connect-mongo';
 import cors from 'cors';
 import authRoutes from './routes/authRoutes.js';
-import passport from 'passport';
 import mongoose from 'mongoose';
 
 dotenv.config();
@@ -27,8 +26,8 @@ app.use(
 );
 
 // Passport setup
-app.use(passport.initialize());
-app.use(passport.session());
+// app.use(passport.initialize());
+// app.use(passport.session());
 
 // Routes
 app.use('/auth', authRoutes);
